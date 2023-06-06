@@ -51,7 +51,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USERNAME }}/${{ jobs.btc_parent.env.image_name }}
+          images: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USERNAME }}/${{ btc_parent.env.image_name }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -60,12 +60,12 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: "./rna/${{ jobs.btc_parent.env.image_name }}.Dockerfile"
+          file: "./rna/${{ btc_parent.env.image_name }}.Dockerfile"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ jobs.btc_parent.env.image_name }}
-          cache-to: type=gha,mode=max,scope=${{ image_najobs.btc_parent.env.image_namee }}
+          cache-from: type=gha,scope=${{ btc_parent.env.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ btc_parent.env.image_name }}
 
   btc_child:
     strategy:
