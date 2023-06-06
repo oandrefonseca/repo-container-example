@@ -1,4 +1,4 @@
 FROM ubuntu:latest
 
 RUN apt-get update 
-RUN apt-get install -y --no-install-recommends build-essential r-base
+RUN apt-get install htop
