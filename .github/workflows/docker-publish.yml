@@ -19,7 +19,7 @@ env:
 jobs:
   btc_parent:
     env:
-      image_name: Hello
+      image_name: first
     runs-on: ubuntu-latest
     permissions:
       contents: read
