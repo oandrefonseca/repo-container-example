@@ -10,14 +10,15 @@ on:
     branches: [ "main" ]
 
 env:
-  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+  REGISTRY: docker.io
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}   
     
 jobs:
   btc_parent:
     strategy:
       matrix:
-        image: [ first ]
+        image:
+          - first
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,7 +50,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: oandrefonseca/${{ matrix.name }}
+          images: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_USERNAME }}/${{ matrix.name }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -58,8 +59,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./rna/first.Dockerfile
+          file: "./rna/${{ matrix.image_name }}.Dockerfile"
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
