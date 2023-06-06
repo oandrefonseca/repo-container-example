@@ -1,38 +1,64 @@
-name: Docker Publish
-
+name: Docker
 on:
+  schedule:
+    - cron: '15 1 * * *'
   push:
-    branches:
-      - main  # ou a branch que você deseja
+    branches: [ "main" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: docker.io
+  IMAGE_NAME:
+    test
 
 jobs:
-  publish:
+  build:
+
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Check for changes in Dockerfiles
-        id: git-diff
-        run: |
-          if [[ -n "$(git diff --name-only HEAD^ HEAD -- rna/)" ]]; then
-            echo "::set-output name=changed::true"
-          else
-            echo "::set-output name=changed::false"
-          fi
+      # Workaround: https://github.com/docker/build-push-action/issues/461
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Login to DockerHub
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log in to Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Publish Docker Image
-        if: steps.git-diff.outputs.changed == 'true' && github.event_name != 'pull_request'
-        uses: docker/build-push-action@v2
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
         with:
-          context: .
-          push: true
-          tags: your-dockerhub-username/your-repository-name:latest
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./rna
+          file: ./rna/first.Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
